@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector")]
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String?        @unique
+  name          String?
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  githubAccount GithubAccount?
+  repositories  Repository[]
+  chatSessions  ChatSession[]
+
+  @@map("users")
+}
+
+model GithubAccount {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  githubId    String   @unique
+  login       String
+  accessToken String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("github_accounts")
+}
+
+model Repository {
+  id                Int          @id @default(autoincrement())
+  userId            Int
+  githubRepoId      String
+  name              String
+  fullName          String
+  owner             String
+  description       String?
+  language          String?
+  isPrivate         Boolean      @default(false)
+  defaultBranch     String       @default("main")
+  url               String
+  latestCommitSha   String?
+  indexStatus       IndexStatus  @default(NOT_INDEXED)
+  indexedAt         DateTime?
+  totalFiles        Int?
+  totalChunks       Int?
+  summary           String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files             File[]
+  codeChunks        CodeChunk[]
+  chatSessions      ChatSession[]
+
+  @@unique([userId, githubRepoId])
+  @@map("repositories")
+}
+
+enum IndexStatus {
+  NOT_INDEXED
+  INDEXING
+  INDEXED
+  ERROR
+}
+
+model File {
+  id           Int         @id @default(autoincrement())
+  repositoryId Int
+  path         String
+  name         String
+  language     String?
+  size         Int?
+  sha          String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  repository   Repository  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  codeChunks   CodeChunk[]
+
+  @@unique([repositoryId, path])
+  @@map("files")
+}
+
+model CodeChunk {
+  id           Int        @id @default(autoincrement())
+  repositoryId Int
+  fileId       Int
+  filePath     String
+  language     String
+  symbolName   String?
+  symbolType   String?
+  parentSymbol String?
+  startLine    Int
+  endLine      Int
+  content      String
+  embedding    Unsupported("vector(768)")?
+  createdAt    DateTime   @default(now())
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  file         File       @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("code_chunks")
+}
+
+model ChatSession {
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  repositoryId Int
+  title        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repository   Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            Int         @id @default(autoincrement())
+  sessionId     Int
+  role          MessageRole
+  content       String
+  sources       Json?
+  createdAt     DateTime    @default(now())
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}

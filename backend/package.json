@@ -1,0 +1,37 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@babel/parser": "^7.29.8",
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^7.10.0",
+    "axios": "^1.20.0",
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "prisma": "^7.10.0"
+  },
+  "devDependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.23.13"
+  }
+}

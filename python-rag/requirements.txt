@@ -1,0 +1,13 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+langchain==0.3.25
+langchain-google-genai==2.0.10
+langchain-postgres==0.0.13
+langchain-community==0.3.24
+langchain-huggingface
+sentence-transformers
+psycopg2-binary==2.9.9
+psycopg[binary]==3.2.1
+python-dotenv==1.0.1
+pydantic>=2.12.5
+rank-bm25==0.2.2
