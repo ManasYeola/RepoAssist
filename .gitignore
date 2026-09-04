@@ -39,3 +39,8 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Documentation & PRDs
+*PRD*.md
+*prd*.md
+AI_GitHub_Code_Intelligence_PRD.md
