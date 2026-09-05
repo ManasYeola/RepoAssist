@@ -1,5 +1,5 @@
 const prisma = require('../utils/prisma');
-const { indexRepository, getIndexingProgress } = require('../services/indexing.service');
+const { indexRepository, getIndexingProgress, clearIndexingProgress } = require('../services/indexing.service');
 
 
 /**
@@ -14,13 +14,18 @@ const startIndexing = async (req, res, next) => {
     });
     if (!repo) return res.status(404).json({ error: { message: 'Repository not found' } });
 
-    // Check if already indexing
-    const progress = getIndexingProgress(repoId);
-    if (progress.status === 'indexing') {
-      return res.status(409).json({ error: { message: 'Repository is already being indexed' } });
+    // Only block if DB confirms it is currently INDEXING
+    if (repo.indexStatus === 'INDEXING') {
+      const progress = getIndexingProgress(repoId);
+      if (progress.status === 'indexing') {
+        return res.status(409).json({ error: { message: 'Repository is already being indexed' } });
+      }
+    } else {
+      clearIndexingProgress(repoId);
     }
 
     const accessToken = req.user.githubAccount.accessToken;
+
 
     // Fire indexing in background (non-blocking)
     setImmediate(() => {
@@ -76,9 +81,18 @@ const startReindex = async (req, res, next) => {
     const repo = await prisma.repository.findFirst({
       where: { id: repoId, userId: req.user.id },
     });
-    if (!repo) return res.status(404).json({ error: { message: 'Repository not found' } });
+    // Only block if DB confirms it is currently INDEXING
+    if (repo.indexStatus === 'INDEXING') {
+      const progress = getIndexingProgress(repoId);
+      if (progress.status === 'indexing') {
+        return res.status(409).json({ error: { message: 'Repository is already being indexed' } });
+      }
+    } else {
+      clearIndexingProgress(repoId);
+    }
 
     const accessToken = req.user.githubAccount.accessToken;
+
 
     setImmediate(() => {
       indexRepository(repoId, accessToken, incremental).catch((err) => {

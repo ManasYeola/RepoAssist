@@ -361,4 +361,9 @@ const indexRepository = async (repositoryId, accessToken, incremental = false) =
   }
 };
 
-module.exports = { indexRepository, getIndexingProgress };
+const clearIndexingProgress = (repositoryId) => {
+  indexingProgress.delete(repositoryId);
+};
+
+module.exports = { indexRepository, getIndexingProgress, clearIndexingProgress };
+
