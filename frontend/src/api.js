@@ -7,9 +7,21 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Attach Authorization Bearer token to all outgoing requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('repoassist_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Auth
 export const getMe = () => api.get('/auth/me');
-export const logout = () => api.post('/auth/logout');
+export const logout = () => {
+  localStorage.removeItem('repoassist_token');
+  return api.post('/auth/logout');
+};
 
 // Repositories
 export const listRepositories = () => api.get('/repositories');

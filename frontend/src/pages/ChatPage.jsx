@@ -107,10 +107,10 @@ const Message = ({ msg }) => {
       </div>
       <div className="message-content">
         <div className="message-role">
-          {isUser ? 'You' : 'RepoGPT'}
+          {isUser ? 'You' : 'RepoAssist'}
           {msg.isStreaming && <span className="streaming-badge">typing...</span>}
           {msg.mode && msg.mode !== 'default' && (
-            <span className="mode-badge mode-badge--{msg.mode}">{MODE_LABELS[msg.mode] || msg.mode}</span>
+            <span className={`mode-badge mode-badge--${msg.mode}`}>{MODE_LABELS[msg.mode] || msg.mode}</span>
           )}
         </div>
         <div className="message-body">
@@ -139,7 +139,7 @@ const TypingIndicator = () => (
   <div className="message">
     <div className="message-avatar ai">🤖</div>
     <div className="message-content">
-      <div className="message-role">RepoGPT</div>
+      <div className="message-role">RepoAssist</div>
       <div className="typing-indicator">
         <div className="loading-dots">
           <span /><span /><span />
@@ -1057,7 +1057,7 @@ const ChatPage = ({ user }) => {
 
                   <div style={{ fontSize: 44, marginTop: summary ? 8 : 0 }}>🔍</div>
                   <h3>Ask about your codebase</h3>
-                  <p>Ask questions in natural language. RepoGPT searches indexed code with hybrid vector + BM25 retrieval and streams answers with citations.</p>
+                  <p>Ask questions in natural language. RepoAssist searches indexed code with hybrid vector + BM25 retrieval and streams answers with citations.</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 480 }}>
                     {EXAMPLE_QUESTIONS.map((q) => (
                       <button

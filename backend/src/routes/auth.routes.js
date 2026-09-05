@@ -3,6 +3,8 @@ const passport = require('passport');
 const { getMe, logout } = require('../controllers/auth.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 
+const { signToken } = require('../utils/token');
+
 const router = express.Router();
 
 // Redirect to GitHub OAuth
@@ -14,11 +16,22 @@ router.get('/github', passport.authenticate('github', {
 router.get(
   '/github/callback',
   passport.authenticate('github', {
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=auth_failed`,
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}?error=auth_failed`,
   }),
   (req, res) => {
-    // Successful auth — redirect to dashboard
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    if (!req.user) {
+      return res.redirect(`${frontendUrl}?error=no_user`);
+    }
+
+    // Generate secure token for cross-domain auth (works across Vercel <-> Render)
+    const token = signToken({ userId: req.user.id });
+
+    // Also persist session for cookie-based clients
+    req.session.save((err) => {
+      if (err) console.error('Session save warning:', err);
+      res.redirect(`${frontendUrl}/dashboard?token=${token}`);
+    });
   }
 );
 

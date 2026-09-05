@@ -12,9 +12,21 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Capture token from GitHub OAuth redirect
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('repoassist_token', token);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
     getMe()
       .then((res) => setUser(res.data))
-      .catch(() => setUser(null))
+      .catch(() => {
+        localStorage.removeItem('repoassist_token');
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -22,7 +22,7 @@ const LandingPage = () => {
       </h1>
 
       <p className="hero-subtitle">
-        RepoGPT uses AST-based code-aware chunking, semantic embeddings, and hybrid retrieval
+        RepoAssist uses AST-based code-aware chunking, semantic embeddings, and hybrid retrieval
         to understand your codebase and answer developer questions with source-level citations.
       </p>
 
