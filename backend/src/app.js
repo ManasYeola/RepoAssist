@@ -68,9 +68,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get(['/api/health', '/health'], (req, res) => {
+  res.json({ status: 'ok', service: 'repoassist-backend', timestamp: new Date().toISOString() });
 });
+
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);

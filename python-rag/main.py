@@ -61,14 +61,58 @@ async def _prewarm_models():
         logger.warning(f"⚠️ Pre-warm warning: {e}")
 
 
+async def _keep_alive_loop():
+    """Periodically ping Node.js backend and own public URL to prevent Render sleep."""
+    import asyncio
+    import urllib.request
+
+    # Wait 45s after startup before initiating keep-alive pings
+    await asyncio.sleep(45)
+
+    node_url = os.getenv("NODE_BACKEND_URL")
+    my_url = os.getenv("RENDER_EXTERNAL_URL")
+
+    logger.info(f"💓 [KeepAlive] Python service keep-alive active (Node: {node_url}, Self: {my_url})")
+
+    while True:
+        try:
+            urls_to_ping = []
+            if node_url:
+                target = node_url.rstrip("/") + "/api/health"
+                urls_to_ping.append(("Node Backend", target))
+            if my_url:
+                target = my_url.rstrip("/") + "/health"
+                urls_to_ping.append(("Self (Python RAG)", target))
+
+            for label, url in urls_to_ping:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "RepoAssist-KeepAlive/1.0"})
+                    # Run sync urllib in a thread pool to avoid blocking async loop
+                    def _do_ping(u, r):
+                        with urllib.request.urlopen(r, timeout=10) as resp:
+                            return resp.status
+                    status = await asyncio.to_thread(_do_ping, url, req)
+                    logger.info(f"💓 [KeepAlive] Pinged {label} ({url}) -> Status: {status}")
+                except Exception as ex:
+                    logger.debug(f"[KeepAlive] Ping notice for {label}: {ex}")
+        except Exception as e:
+            logger.debug(f"[KeepAlive] Loop error: {e}")
+
+        # Sleep for 10 minutes (600 seconds)
+        await asyncio.sleep(600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import asyncio
     logger.info("🐍 RepoAssist Python RAG service starting (gemini-3.5-flash-lite + fastembed/bge-base-en-v1.5)...")
     # Launch pre-warm in background so Uvicorn binds to port immediately
     asyncio.create_task(_prewarm_models())
+    # Launch keep-alive background task to prevent Render 15-minute idle sleep
+    asyncio.create_task(_keep_alive_loop())
     yield
     logger.info("🐍 RepoAssist Python RAG service shutting down...")
+
 
 
 

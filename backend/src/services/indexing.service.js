@@ -16,12 +16,8 @@ const { chunkFile, shouldSkipFile } = require('./chunking.service');
 const { getRepositorySummary } = require('./rag.service');
 const prisma = require('../utils/prisma');
 
-const PYTHON_RAG_URL = process.env.PYTHON_RAG_URL || 'http://localhost:8000';
+const { ragClient, ensurePythonRagAwake } = require('../utils/ragClient');
 
-const ragClient = axios.create({
-  baseURL: PYTHON_RAG_URL,
-  timeout: 120000, // 2 min for large embedding batches
-});
 
 // Track indexing progress in memory
 const indexingProgress = new Map();
@@ -133,6 +129,9 @@ const indexRepository = async (repositoryId, accessToken, incremental = false) =
     );
 
     setProgress(15, `Found ${indexableFiles.length} indexable files`);
+
+    setProgress(16, 'Ensuring RAG microservice is awake...');
+    await ensurePythonRagAwake();
 
     if (!incremental) {
       setProgress(18, 'Clearing existing index in Python RAG service...');
@@ -287,10 +286,15 @@ const indexRepository = async (repositoryId, accessToken, incremental = false) =
     // Flush any remaining trailing chunks
     if (pendingChunks.length > 0) {
       setProgress(90, `Embedding final batch (${pendingChunks.length} chunks)...`);
-      const count = await sendChunksToPython(repositoryId, pendingChunks);
-      totalChunks += count;
+      try {
+        const count = await sendChunksToPython(repositoryId, pendingChunks);
+        totalChunks += count;
+      } catch (err) {
+        console.error('[Indexing] Error embedding final batch:', err.message);
+      }
       pendingChunks = [];
     }
+
 
     // ── BATCH DATABASE WRITE (1 Bulk SQL query instead of 100+ roundtrips) ──
     if (filesToCreate.length > 0) {

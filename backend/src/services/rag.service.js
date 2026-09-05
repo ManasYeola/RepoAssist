@@ -8,14 +8,8 @@
  *   - Specialized mode prompts: security, blast_radius, docs, architecture
  */
 
-const axios = require('axios');
+const { ragClient } = require('../utils/ragClient');
 
-const PYTHON_RAG_URL = process.env.PYTHON_RAG_URL || 'http://localhost:8000';
-
-const ragClient = axios.create({
-  baseURL: PYTHON_RAG_URL,
-  timeout: 180000, // 180s (3 min) — generous timeout for deep code generation
-});
 
 /**
  * Run the full RAG pipeline via the Python LangChain service.
