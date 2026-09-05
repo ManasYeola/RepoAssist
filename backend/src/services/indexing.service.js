@@ -213,8 +213,9 @@ const indexRepository = async (repositoryId, accessToken, incremental = false) =
 
     let processedFiles = 0;
     let totalChunks = 0;
-    const CHUNK_SEND_BATCH = 50;
+    const CHUNK_SEND_BATCH = 25;
     let pendingChunks = [];
+
     const filesToCreate = [];
 
     // Chain chunk flushes to Python so requests are pipelined safely

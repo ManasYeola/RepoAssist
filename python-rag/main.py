@@ -168,8 +168,9 @@ async def embed_chunks(request: EmbedRequest):
         )
 
     try:
+        import asyncio
         chunk_dicts = [chunk.model_dump() for chunk in request.chunks]
-        count = add_chunks(request.repository_id, chunk_dicts)
+        count = await asyncio.to_thread(add_chunks, request.repository_id, chunk_dicts)
         logger.info(f"[Embed] ✓ Stored {count} chunks for repo {request.repository_id}")
 
         return EmbedResponse(
@@ -192,7 +193,8 @@ async def delete_file_embedding(request: DeleteFileRequest):
         f"[DeleteFile] repo={request.repository_id} file={request.file_path}"
     )
     try:
-        delete_file_vectors(request.repository_id, request.file_path)
+        import asyncio
+        await asyncio.to_thread(delete_file_vectors, request.repository_id, request.file_path)
         return {
             "repository_id": request.repository_id,
             "file_path": request.file_path,
@@ -201,6 +203,7 @@ async def delete_file_embedding(request: DeleteFileRequest):
     except Exception as e:
         logger.error(f"[DeleteFile] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -343,7 +346,8 @@ async def delete_repo_vectors(repository_id: int):
     logger.info(f"[Delete] Deleting vectors for repo {repository_id}")
 
     try:
-        delete_repository(repository_id)
+        import asyncio
+        await asyncio.to_thread(delete_repository, repository_id)
         return DeleteResponse(
             repository_id=repository_id,
             message=f"Deleted all vectors for repository {repository_id}",
@@ -351,3 +355,4 @@ async def delete_repo_vectors(repository_id: int):
     except Exception as e:
         logger.error(f"[Delete] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
