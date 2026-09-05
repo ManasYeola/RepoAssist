@@ -5,8 +5,6 @@ langchain-community>=0.3.0,<0.4.0
 langchain-core>=0.3.0,<0.4.0
 langchain-google-genai>=2.0.0
 langchain-postgres>=0.0.12
-langchain-huggingface
-sentence-transformers
 psycopg2-binary>=2.9.9
 psycopg[binary]>=3.2.0
 python-dotenv>=1.0.1

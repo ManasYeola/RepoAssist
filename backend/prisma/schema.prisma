@@ -141,3 +141,26 @@ enum MessageRole {
   USER
   ASSISTANT
 }
+
+// Managed externally by Python RAG (langchain-postgres) — ignored by Prisma Client
+model LangchainPgCollection {
+  name      String?
+  cmetadata Json?
+  uuid      String  @id
+
+  @@map("langchain_pg_collection")
+  @@ignore
+}
+
+model LangchainPgEmbedding {
+  collection_id String?
+  embedding     Unsupported("vector")?
+  document      String?
+  cmetadata     Json?
+  custom_id     String?
+  uuid          String  @id
+
+  @@map("langchain_pg_embedding")
+  @@ignore
+}
+

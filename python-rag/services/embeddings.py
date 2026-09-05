@@ -1,25 +1,24 @@
 import os
 from functools import lru_cache
 from dotenv import load_dotenv
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 load_dotenv()
 
 
 @lru_cache(maxsize=1)
-def get_embeddings() -> HuggingFaceEmbeddings:
-    """Lazy singleton — loads local HuggingFace embeddings from cache.
+def get_embeddings() -> GoogleGenerativeAIEmbeddings:
+    """Lazy singleton — loads Google Gemini Embeddings (768-dim).
     
-    Uses sentence-transformers/all-mpnet-base-v2 (768-dim) matching PGVector vector(768).
-    Runs 100% offline from local disk with zero network latency, no rate limits, and zero cost.
+    Uses models/text-embedding-004 matching PGVector vector(768).
+    Eliminates PyTorch/CUDA dependencies, reducing build size from ~4GB to ~50MB.
     """
-    model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
-    return HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={"device": "cpu", "local_files_only": True},
-        encode_kwargs={"normalize_embeddings": True},
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY environment variable is not set")
+    return GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=api_key,
     )
 
 
