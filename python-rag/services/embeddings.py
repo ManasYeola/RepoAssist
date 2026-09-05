@@ -1,24 +1,55 @@
 import os
 from functools import lru_cache
+from typing import List
 from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+import google.generativeai as genai
+from langchain_core.embeddings import Embeddings
 
 load_dotenv()
 
 
+class GeminiEmbeddings(Embeddings):
+    """Google Gemini Embedding client supporting 768-dimensional output."""
+
+    def __init__(self, api_key: str, model: str = "models/gemini-embedding-001", dimension: int = 768):
+        genai.configure(api_key=api_key)
+        self.model = model
+        self.dimension = dimension
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        if not texts:
+            return []
+        results = []
+        batch_size = 50
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            res = genai.embed_content(
+                model=self.model,
+                content=batch,
+                output_dimensionality=self.dimension,
+            )
+            results.extend(res["embedding"])
+        return results
+
+    def embed_query(self, text: str) -> List[float]:
+        res = genai.embed_content(
+            model=self.model,
+            content=text,
+            output_dimensionality=self.dimension,
+        )
+        return res["embedding"]
+
+
 @lru_cache(maxsize=1)
-def get_embeddings() -> GoogleGenerativeAIEmbeddings:
-    """Lazy singleton — loads Google Gemini Embeddings (768-dim).
-    
-    Uses models/text-embedding-004 matching PGVector vector(768).
-    Eliminates PyTorch/CUDA dependencies, reducing build size from ~4GB to ~50MB.
-    """
+def get_embeddings() -> GeminiEmbeddings:
+    """Lazy singleton — loads Google Gemini Embeddings (768-dim)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY environment variable is not set")
-    return GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
-        google_api_key=api_key,
+    return GeminiEmbeddings(
+        api_key=api_key,
+        model="models/gemini-embedding-001",
+        dimension=768,
     )
 
 
