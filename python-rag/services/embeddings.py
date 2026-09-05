@@ -8,8 +8,37 @@ from langchain_core.embeddings import Embeddings
 load_dotenv()
 
 
+import time
+import logging
+from google.api_core.exceptions import ResourceExhausted
+
+logger = logging.getLogger("repogpt-rag")
+
+
+def _embed_with_retry(model: str, content, dimension: int, max_retries: int = 5, base_delay: float = 3.0):
+    """Embed content with exponential backoff for 429 quota/rate limit errors."""
+    for attempt in range(max_retries):
+        try:
+            return genai.embed_content(
+                model=model,
+                content=content,
+                output_dimensionality=dimension,
+            )
+        except Exception as e:
+            err_str = str(e).lower()
+            if "429" in err_str or "quota" in err_str or "resourceexhausted" in err_str or isinstance(e, ResourceExhausted):
+                if attempt == max_retries - 1:
+                    logger.error(f"[Embeddings] Rate limit exceeded after {max_retries} attempts.")
+                    raise
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"[Embeddings] Google 429 rate limit hit. Pausing {delay:.1f}s before retry (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(delay)
+            else:
+                raise
+
+
 class GeminiEmbeddings(Embeddings):
-    """Google Gemini Embedding client supporting 768-dimensional output."""
+    """Google Gemini Embedding client supporting 768-dimensional output and automatic 429 retry."""
 
     def __init__(self, api_key: str, model: str = "models/gemini-embedding-001", dimension: int = 768):
         genai.configure(api_key=api_key)
@@ -20,22 +49,25 @@ class GeminiEmbeddings(Embeddings):
         if not texts:
             return []
         results = []
-        batch_size = 50
+        batch_size = 25  # Safer batch size for Free Tier token limits
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
-            res = genai.embed_content(
+            res = _embed_with_retry(
                 model=self.model,
                 content=batch,
-                output_dimensionality=self.dimension,
+                dimension=self.dimension,
             )
             results.extend(res["embedding"])
+            # Small delay between batches to respect free tier RPM limits
+            if i + batch_size < len(texts):
+                time.sleep(0.5)
         return results
 
     def embed_query(self, text: str) -> List[float]:
-        res = genai.embed_content(
+        res = _embed_with_retry(
             model=self.model,
             content=text,
-            output_dimensionality=self.dimension,
+            dimension=self.dimension,
         )
         return res["embedding"]
 

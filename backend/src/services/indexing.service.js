@@ -214,7 +214,7 @@ const indexRepository = async (repositoryId, accessToken, incremental = false) =
 
     let processedFiles = 0;
     let totalChunks = 0;
-    const CHUNK_SEND_BATCH = 100;
+    const CHUNK_SEND_BATCH = 50;
     let pendingChunks = [];
     const filesToCreate = [];
 
