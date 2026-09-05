@@ -742,12 +742,15 @@ const ChatPage = ({ user }) => {
     setQuestion('');
     setTyping(true);
     setLoading(true);
-    setError(null);
-
     try {
+      const token = localStorage.getItem('repoassist_token');
+
       const response = await fetch(`${API_BASE_URL}/api/repositories/${repoId}/chat/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           question: q,
