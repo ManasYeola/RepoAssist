@@ -18,6 +18,7 @@
   "dependencies": {
     "@babel/parser": "^7.29.8",
     "@google/generative-ai": "^0.24.1",
+    "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "axios": "^1.20.0",
     "connect-pg-simple": "^10.0.0",
@@ -27,10 +28,10 @@
     "express-session": "^1.19.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
+    "pg": "^8.16.3",
     "prisma": "^7.10.0"
   },
   "devDependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
     "nodemon": "^3.1.14",
     "tsx": "^4.23.13"
   }
