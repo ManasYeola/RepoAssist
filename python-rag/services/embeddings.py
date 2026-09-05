@@ -11,6 +11,13 @@ load_dotenv()
 logger = logging.getLogger("repogpt-rag")
 
 
+# Persistent cache directory for ONNX model weights
+CACHE_DIR = os.getenv(
+    "FASTEMBED_CACHE_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "local_cache")
+)
+
+
 class FastEmbedLocalEmbeddings(Embeddings):
     """Local, high-speed ONNX embedding model using BAAI/bge-base-en-v1.5 (768-dim).
     
@@ -22,8 +29,8 @@ class FastEmbedLocalEmbeddings(Embeddings):
     """
 
     def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
-        logger.info(f"[FastEmbed] Loading local embedding model: {model_name}...")
-        self.model = TextEmbedding(model_name=model_name, threads=2)
+        logger.info(f"[FastEmbed] Loading local embedding model: {model_name} (cache: {CACHE_DIR})...")
+        self.model = TextEmbedding(model_name=model_name, cache_dir=CACHE_DIR, threads=2)
         logger.info(f"[FastEmbed] Model {model_name} loaded successfully (768-dim)!")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:

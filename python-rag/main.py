@@ -48,9 +48,7 @@ logger = logging.getLogger("repogpt-rag")
 
 # ─── App Lifespan ─────────────────────────────────────────────────────────────
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("🐍 RepoAssist Python RAG service starting (gemini-3.5-flash-lite + fastembed/bge-base-en-v1.5)...")
+async def _prewarm_models():
     try:
         import asyncio
         from services.embeddings import get_embeddings
@@ -60,9 +58,18 @@ async def lifespan(app: FastAPI):
         await asyncio.to_thread(get_llm)
         logger.info("✅ Hybrid RAG service ready — Dense + BM25 retrieval active!")
     except Exception as e:
-        logger.warning(f"⚠️ Pre-warm skipped: {e}")
+        logger.warning(f"⚠️ Pre-warm warning: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio
+    logger.info("🐍 RepoAssist Python RAG service starting (gemini-3.5-flash-lite + fastembed/bge-base-en-v1.5)...")
+    # Launch pre-warm in background so Uvicorn binds to port immediately
+    asyncio.create_task(_prewarm_models())
     yield
-    logger.info("🐍 RepoGPT Python RAG service shutting down...")
+    logger.info("🐍 RepoAssist Python RAG service shutting down...")
+
 
 
 # ─── FastAPI App ──────────────────────────────────────────────────────────────
