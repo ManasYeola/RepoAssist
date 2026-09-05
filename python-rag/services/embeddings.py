@@ -1,88 +1,46 @@
 import os
+import logging
 from functools import lru_cache
 from typing import List
 from dotenv import load_dotenv
-import google.generativeai as genai
 from langchain_core.embeddings import Embeddings
+from fastembed import TextEmbedding
 
 load_dotenv()
-
-
-import time
-import logging
-from google.api_core.exceptions import ResourceExhausted
 
 logger = logging.getLogger("repogpt-rag")
 
 
-def _embed_with_retry(model: str, content, dimension: int, max_retries: int = 5, base_delay: float = 3.0):
-    """Embed content with exponential backoff for 429 quota/rate limit errors."""
-    for attempt in range(max_retries):
-        try:
-            return genai.embed_content(
-                model=model,
-                content=content,
-                output_dimensionality=dimension,
-            )
-        except Exception as e:
-            err_str = str(e).lower()
-            if "429" in err_str or "quota" in err_str or "resourceexhausted" in err_str or isinstance(e, ResourceExhausted):
-                if attempt == max_retries - 1:
-                    logger.error(f"[Embeddings] Rate limit exceeded after {max_retries} attempts.")
-                    raise
-                delay = base_delay * (2 ** attempt)
-                logger.warning(f"[Embeddings] Google 429 rate limit hit. Pausing {delay:.1f}s before retry (attempt {attempt + 1}/{max_retries})...")
-                time.sleep(delay)
-            else:
-                raise
+class FastEmbedLocalEmbeddings(Embeddings):
+    """Local, high-speed ONNX embedding model using BAAI/bge-base-en-v1.5 (768-dim).
+    
+    Runs 100% locally on CPU via Microsoft's ONNX Runtime.
+    - Zero network calls / zero latency
+    - Zero daily quotas or rate limits
+    - Zero API keys needed for embeddings
+    - Ultra-lightweight: ~120MB model, <100MB RAM, zero PyTorch/CUDA
+    """
 
-
-class GeminiEmbeddings(Embeddings):
-    """Google Gemini Embedding client supporting 768-dimensional output and automatic 429 retry."""
-
-    def __init__(self, api_key: str, model: str = "models/gemini-embedding-001", dimension: int = 768):
-        genai.configure(api_key=api_key)
-        self.model = model
-        self.dimension = dimension
+    def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
+        logger.info(f"[FastEmbed] Loading local embedding model: {model_name}...")
+        self.model = TextEmbedding(model_name=model_name, threads=2)
+        logger.info(f"[FastEmbed] Model {model_name} loaded successfully (768-dim)!")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        results = []
-        batch_size = 25  # Safer batch size for Free Tier token limits
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            res = _embed_with_retry(
-                model=self.model,
-                content=batch,
-                dimension=self.dimension,
-            )
-            results.extend(res["embedding"])
-            # Small delay between batches to respect free tier RPM limits
-            if i + batch_size < len(texts):
-                time.sleep(0.5)
-        return results
+        # fastembed model.embed returns a generator of numpy arrays
+        return [vec.tolist() for vec in self.model.embed(texts)]
 
     def embed_query(self, text: str) -> List[float]:
-        res = _embed_with_retry(
-            model=self.model,
-            content=text,
-            dimension=self.dimension,
-        )
-        return res["embedding"]
+        vec = next(self.model.embed([text]))
+        return vec.tolist()
 
 
 @lru_cache(maxsize=1)
-def get_embeddings() -> GeminiEmbeddings:
-    """Lazy singleton — loads Google Gemini Embeddings (768-dim)."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY environment variable is not set")
-    return GeminiEmbeddings(
-        api_key=api_key,
-        model="models/gemini-embedding-001",
-        dimension=768,
-    )
+def get_embeddings() -> FastEmbedLocalEmbeddings:
+    model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+    return FastEmbedLocalEmbeddings(model_name=model_name)
 
 
 def prepare_chunk_text(chunk_dict: dict) -> str:

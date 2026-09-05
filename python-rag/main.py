@@ -50,7 +50,7 @@ logger = logging.getLogger("repogpt-rag")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🐍 RepoAssist Python RAG service starting (gemini-3.5-flash-lite + gemini-embedding-001)...")
+    logger.info("🐍 RepoAssist Python RAG service starting (gemini-3.5-flash-lite + fastembed/bge-base-en-v1.5)...")
     try:
         import asyncio
         from services.embeddings import get_embeddings
